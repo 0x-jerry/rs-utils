@@ -1,0 +1,13 @@
+[package]
+name = "rs_utils"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+rs_utils_derive = { path = "../rs_utils_derive" }
+
+[features]
+default = ["derive"]
+derive = []
