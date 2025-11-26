@@ -13,18 +13,6 @@ pub fn my_versioned_derive(input: TokenStream) -> TokenStream {
 
     // --- Generate something if needed ---
     let expanded = quote! {
-        impl Into<serde_json::Value> for #name {
-            fn into(self) -> serde_json::Value {
-                return serde_json::to_value(self).expect("Serialize to_value failed!");
-            }
-        }
-
-        impl From<serde_json::Value> for #name {
-            fn from(value: serde_json::Value) -> Self {
-                return serde_json::from_value(value).expect("Deserialize from_value failed!");
-            }
-        }
-
         impl rs_utils::config::Versioned for #name {
             fn get_version(&self) -> i64 {
                 self.version.into()
