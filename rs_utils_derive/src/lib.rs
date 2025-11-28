@@ -1,22 +1,7 @@
 use proc_macro::TokenStream;
-use quote::quote;
-use syn::{Expr, Ident, parse::Parse, parse_macro_input, punctuated::Punctuated, token::Comma};
 
-struct ChainFromInputData {
-    value: Expr,
-    types: Punctuated<Ident, Comma>,
-}
-
-impl Parse for ChainFromInputData {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let value: Expr = input.parse()?;
-        let _: Comma = input.parse()?;
-
-        let types = input.parse_terminated(Ident::parse, Comma)?;
-
-        return Ok(Self { value, types });
-    }
-}
+mod chain_from;
+mod migration;
 
 ///
 /// Example:
@@ -28,22 +13,10 @@ impl Parse for ChainFromInputData {
 /// Each type must implement `From<T>` where `T` is the previous type.
 #[proc_macro]
 pub fn chain_from(input: TokenStream) -> TokenStream {
-    let data = parse_macro_input!(input as ChainFromInputData);
+    chain_from::chain_from(input)
+}
 
-    let value = data.value;
-    let types = data.types.iter();
-
-    let expanded = quote! {
-        {
-            let value = #value;
-
-            #(
-                let value = #types::from(value);
-            )*
-
-            value
-        }
-    };
-
-    return expanded.into();
+#[proc_macro_derive(Versioned)]
+pub fn migration_versioned_derive(input: TokenStream) -> TokenStream {
+    migration::migration_versioned_derive(input)
 }

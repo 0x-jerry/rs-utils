@@ -8,3 +8,4 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 anyhow = { workspace = true }
 rs_utils = { path = "../rs_utils" }
+smart-default = "0.7"
