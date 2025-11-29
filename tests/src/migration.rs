@@ -1,10 +1,6 @@
-use anyhow::Result;
-use rs_utils::{
-    macros::Versioned,
-    migration::{Migration, Versioned, do_migrate},
-};
+#![allow(dead_code)]
+use rs_utils::macros::Versioned;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use smart_default::SmartDefault;
 
 #[derive(Serialize, Deserialize, SmartDefault, Versioned)]
@@ -21,6 +17,15 @@ struct V2 {
     b: i32,
 }
 
+impl From<V1> for V2 {
+    fn from(value: V1) -> Self {
+        Self {
+            b: value.a,
+            ..Default::default()
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, SmartDefault, Versioned)]
 struct V3 {
     #[default = 3]
@@ -28,46 +33,21 @@ struct V3 {
     c: i32,
 }
 
-type LatestConfig = V3;
-
-#[allow(dead_code)]
-fn migrate_data(data: Value) -> Result<LatestConfig> {
-    let migrations = vec![
-        Migration {
-            version: 2,
-            migrate: |value| {
-                let v1 = V1::from_value_or_default(value);
-
-                let v2 = V2 {
-                    version: 2,
-                    b: v1.a,
-                };
-
-                return Ok(v2.to_value());
-            },
-        },
-        Migration {
-            version: 3,
-            migrate: |value| {
-                let v1 = V2::from_value_or_default(value);
-
-                let v2 = V3 {
-                    version: 3,
-                    c: v1.b,
-                };
-
-                return Ok(v2.to_value());
-            },
-        },
-    ];
-
-    let t = do_migrate(data, migrations)?;
-
-    return Ok(t);
+impl From<V2> for V3 {
+    fn from(value: V2) -> Self {
+        Self {
+            c: value.b,
+            ..Default::default()
+        }
+    }
 }
+
+type LatestConfig = V3;
 
 #[cfg(test)]
 mod tests {
+    use anyhow::Result;
+    use rs_utils::{macros::migration, migration::Versioned};
     use serde_json::json;
 
     use super::*;
@@ -76,7 +56,7 @@ mod tests {
     fn migrate_configuration() -> Result<()> {
         let data = json!({ "version": 1, "a": 32 });
 
-        let data = migrate_data(data)?;
+        let data = migration!(data, V1, V2, V3);
 
         assert_eq!(data.c, 32);
         assert_eq!(data.version, 3);
@@ -87,7 +67,7 @@ mod tests {
     fn migrate_from_middle() -> Result<()> {
         let data = json!({ "version": 2, "b": 33 });
 
-        let data = migrate_data(data)?;
+        let data = migration!(data, V1, V2, V3);
 
         assert_eq!(data.c, 33);
         assert_eq!(data.version, 3);
@@ -100,7 +80,7 @@ mod tests {
             "a": 32
         });
 
-        let data = migrate_data(corrupt_data)?;
+        let data = migration!(corrupt_data, V1, V2, V3);
 
         assert_eq!(data.c, 0);
         assert_eq!(data.version, 3);

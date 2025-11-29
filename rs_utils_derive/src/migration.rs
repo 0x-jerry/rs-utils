@@ -2,6 +2,8 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{Data, DeriveInput, Fields, Ident, Type, parse_macro_input};
 
+use crate::chain_from::ChainFromInputData;
+
 // #[proc_macro_derive(Versioned)]
 pub fn migration_versioned_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -14,7 +16,7 @@ pub fn migration_versioned_derive(input: TokenStream) -> TokenStream {
     // --- Generate something if needed ---
     let expanded = quote! {
         impl rs_utils::migration::Versioned for #name {
-            fn get_version(&self) -> i64 {
+            fn get_version(&self) -> u32 {
                 self.version.into()
             }
         }
@@ -91,4 +93,62 @@ fn check_version_field(input: &DeriveInput, struct_ident: &Ident) -> Option<Toke
     }
 
     return None;
+}
+
+pub fn migration_macro(input: TokenStream) -> TokenStream {
+    let data = parse_macro_input!(input as ChainFromInputData);
+    let value = data.value;
+
+    let mut migrations: Vec<proc_macro2::TokenStream> = vec![];
+
+    data.types.iter().enumerate().for_each(|(i, ty)| {
+        let is_first = i == 0;
+
+        let define_stat = if is_first {
+            quote! {
+                rs_utils::migration::Migration {
+                    version: #ty::default().get_version(),
+                    migrate: |value| {
+                        let value = #ty::from_value_or_default(value);
+
+                        return Ok(value.to_value());
+                    },
+                }
+            }
+        } else {
+            let prev_ty = data.types.get(i - 1).unwrap();
+
+            quote! {
+                rs_utils::migration::Migration {
+                    version: #ty::default().get_version(),
+                    migrate: |value| {
+                        let value = #prev_ty::from_value_or_default(value);
+                        let value = #ty::from(value);
+
+                        return Ok(value.to_value());
+                    },
+                }
+            }
+        };
+
+        migrations.push(define_stat);
+    });
+
+    let last_ty = data.types.last().unwrap();
+
+    let result = quote! {
+        {
+            let value = #value;
+
+            let migrations = vec![
+                #(#migrations),*
+            ];
+
+            let value: #last_ty = rs_utils::migration::do_migrate(value, migrations)?;
+            value
+        }
+
+    };
+
+    result.into()
 }

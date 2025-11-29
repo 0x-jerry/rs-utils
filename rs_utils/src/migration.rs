@@ -4,7 +4,7 @@ use serde_json::Value;
 use thiserror::Error;
 
 pub struct Migration {
-    pub version: i64,
+    pub version: u32,
     pub migrate: fn(data: Value) -> Result<Value>,
 }
 
@@ -20,9 +20,9 @@ pub fn do_migrate<U: Versioned>(data: Value, migrations: Vec<Migration>) -> Resu
     for migration in migrations {
         let version = result
             .get("version")
-            .map(|v| v.as_i64())
+            .map(|v| v.as_u64())
             .flatten()
-            .unwrap_or(0);
+            .unwrap_or(0) as u32;
 
         if migration.version > version {
             result = (migration.migrate)(result)?;
@@ -35,7 +35,7 @@ pub fn do_migrate<U: Versioned>(data: Value, migrations: Vec<Migration>) -> Resu
 }
 
 pub trait Versioned: DeserializeOwned + Serialize + Default {
-    fn get_version(&self) -> i64;
+    fn get_version(&self) -> u32;
 
     fn from_value(value: Value) -> Result<Self> {
         Ok(serde_json::from_value(value)?)

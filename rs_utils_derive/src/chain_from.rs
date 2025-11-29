@@ -2,9 +2,9 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{Expr, Ident, parse::Parse, parse_macro_input, punctuated::Punctuated, token::Comma};
 
-struct ChainFromInputData {
-    value: Expr,
-    types: Punctuated<Ident, Comma>,
+pub struct ChainFromInputData {
+    pub value: Expr,
+    pub types: Punctuated<Ident, Comma>,
 }
 
 impl Parse for ChainFromInputData {
