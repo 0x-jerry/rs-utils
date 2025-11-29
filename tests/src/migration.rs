@@ -49,6 +49,17 @@ mod tests {
     type LatestConfig = V3;
 
     #[test]
+    fn migrate_configuration_v1() -> Result<()> {
+        let data = json!({ "version": 1, "a": 32 });
+
+        let data = migration!(data, V1)?;
+
+        assert_eq!(data.a, 32);
+        assert_eq!(data.version, 1);
+        Ok(())
+    }
+
+    #[test]
     fn migrate_configuration() -> Result<()> {
         let data = json!({ "version": 1, "a": 32 });
 

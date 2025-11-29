@@ -139,13 +139,11 @@ pub fn migration_macro(input: TokenStream) -> TokenStream {
     let result = quote! {
         {
             use rs_utils::migration::*;
-            let value = #value;
-
             let migrations = vec![
                 #(#migrations),*
             ];
 
-            do_migrate::<#last_ty>(value, migrations)
+            do_migrate::<#last_ty>(#value, migrations)
         }
 
     };
