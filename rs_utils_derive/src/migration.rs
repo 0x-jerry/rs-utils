@@ -106,7 +106,7 @@ pub fn migration_macro(input: TokenStream) -> TokenStream {
 
         let define_stat = if is_first {
             quote! {
-                rs_utils::migration::Migration {
+                Migration {
                     version: #ty::default().get_version(),
                     migrate: |value| {
                         let value = #ty::from_value_or_default(value);
@@ -119,7 +119,7 @@ pub fn migration_macro(input: TokenStream) -> TokenStream {
             let prev_ty = data.types.get(i - 1).unwrap();
 
             quote! {
-                rs_utils::migration::Migration {
+                Migration {
                     version: #ty::default().get_version(),
                     migrate: |value| {
                         let value = #prev_ty::from_value_or_default(value);
@@ -138,14 +138,14 @@ pub fn migration_macro(input: TokenStream) -> TokenStream {
 
     let result = quote! {
         {
+            use rs_utils::migration::*;
             let value = #value;
 
             let migrations = vec![
                 #(#migrations),*
             ];
 
-            let value: #last_ty = rs_utils::migration::do_migrate(value, migrations)?;
-            value
+            do_migrate::<#last_ty>(value, migrations)
         }
 
     };
